@@ -1,0 +1,66 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: ${project.artifactId}
+  labels:
+    app: ${project.artifactId}
+spec:
+  type: LoadBalancer
+  selector:
+    app: ${project.artifactId}
+  ports:
+  - port: 8080
+    nodePort: 31100
+    targetPort: 8080
+    name: http
+---
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: ${project.artifactId}
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: ${project.artifactId}
+        version: v1
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+      - name: ${project.artifactId}
+        image: phx.ocir.io/toddrsharp/barn-automation/${project.artifactId}:latest
+        command: ["java", "-jar"]
+        args:
+        - "-Doracle.net.tns_admin=/wallet"
+        - "-Dapp.oracle.url=jdbc:oracle:thin:@barnevents_low?TNS_ADMIN=/wallet"
+        - "-Djavax.net.ssl.trustStore=truststore.jks"
+        - "-Djavax.net.ssl.keyStore=keystore.jks"
+        - "-Doracle.net.ssl_server_dn_match=true"
+        - "-Doracle.net.ssl_version=1.2"
+        - "-Djavax.net.ssl.trustStorePassword=$(TRUSTSTORE_PASSWORD)"
+        - "-Djavax.net.ssl.keyStorePassword=$(KEYSTORE_PASSWORD)"
+        - "-Dapp.oracle.password=$(ORACLE_PASSWORD)"
+        - "/app/${project.artifactId}.jar"
+        env:
+          - name: TRUSTSTORE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: barn-helidon-mp-groovy-secrets
+                key: trustStorePassword
+          - name: KEYSTORE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: barn-helidon-mp-groovy-secrets
+                key: keyStorePassword
+          - name: ORACLE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: barn-helidon-mp-groovy-secrets
+                key: oraclePassword
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+      imagePullSecrets:
+      - name: regcred
+---

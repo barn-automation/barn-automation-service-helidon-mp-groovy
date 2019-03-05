@@ -1,0 +1,126 @@
+apply plugin: 'java'
+apply plugin: 'maven'
+apply plugin: 'groovy'
+apply plugin: 'application'
+
+mainClassName = 'codes.recursive.barn.automation.Main'
+
+group = 'codes.recursive.barn.automation'
+version = '1.0-SNAPSHOT'
+
+description = """barn-automation-service-helidon-mp-groovy"""
+
+sourceSets.main.resources.srcDirs = [ "src/main/groovy", "src/main/resources" ]
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+ext {
+    helidonversion = '0.11.0'
+}
+
+repositories {
+    maven { url "http://repo.maven.apache.org/maven2" }
+    mavenLocal()
+    mavenCentral()
+}
+
+configurations {
+    localGroovyConf
+}
+
+dependencies {
+    localGroovyConf localGroovy()
+    compile 'org.codehaus.groovy:groovy-all:3.0.0-alpha-3'
+    compile "io.helidon:helidon-bom:${project.helidonversion}"
+    compile 'io.helidon.microprofile.bundles:helidon-microprofile-1.2'
+    compile "io.helidon.webserver:helidon-webserver:${project.helidonversion}"
+    compile 'org.glassfish.jersey.media:jersey-media-json-binding:2.27'
+    compile 'org.glassfish.jersey.media:jersey-media-sse:2.27'
+    compile group: 'org.apache.kafka', name: 'kafka_2.12', version: '1.1.1'
+    compile group: 'com.101tec', name: 'zkclient', version: '0.8'
+    compile 'xyz.morphia.morphia:core:1.4.0'
+
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+
+    runtime 'org.jboss:jandex:2.0.4.Final'
+    runtime 'javax.activation:javax.activation-api:1.2.0'
+    testCompile 'org.junit.jupiter:junit-jupiter-api:5.1.0'
+
+}
+
+// define a custom task to copy all dependencies in the runtime classpath
+// into build/libs/libs
+// uses built-in Copy
+task copyLibs(type: Copy) {
+  from configurations.runtime
+  into 'build/libs/libs'
+}
+
+task copyLocalLibs(type: Copy) {
+  from 'libs/'
+  into 'build/libs/libs'
+}
+
+task copyWallet(type: Copy) {
+  from '../../atp/wallet_BARNEVENTS/'
+  into 'build/wallet'
+}
+
+task copyDocker(type:Copy) {
+    from "src/main/docker"
+    into "build"
+    doLast {
+        def d = new File( 'build/Dockerfile' )
+        def dfile = d.text.replaceAll('\\$\\{project.artifactId\\}', project.name)
+        dfile = dfile.replaceAll("COPY ${project.name}", "COPY libs/${project.name}")
+        d.write(dfile)
+    }
+}
+
+task copyK8s(type:Copy) {
+    from "src/main/k8s"
+    into "build"
+    doLast {
+        def a = new File( 'build/app.yaml' )
+        def afile = a.text.replaceAll('\\$\\{project.artifactId\\}', project.name)
+        a.write(afile)
+    }
+}
+
+task myRun(type: JavaExec){
+    classpath sourceSets.main.runtimeClasspath
+    main = mainClassName
+    systemProperties = System.properties
+}
+
+copyLibs.dependsOn jar
+copyLocalLibs.dependsOn jar
+copyWallet.dependsOn jar
+copyDocker.dependsOn jar
+copyK8s.dependsOn jar
+assemble.dependsOn copyLibs
+assemble.dependsOn copyLocalLibs
+assemble.dependsOn copyWallet
+assemble.dependsOn copyDocker
+assemble.dependsOn copyK8s
+
+// default jar configuration
+// set the main classpath
+// add each jar under build/libs/libs into the classpath
+jar {
+    def libs = configurations.runtime.files.collect { "libs/$it.name" }
+    new File('libs/').eachFile { libs << "libs/$it.name" }
+    archiveName = "${project.name}.jar"
+    manifest {
+        attributes ('Main-Class': "${mainClassName}",
+                'Class-Path': libs.join(' ')
+        )
+    }
+}
+
