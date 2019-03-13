@@ -2,17 +2,16 @@ package codes.recursive.barn.automation.service.data
 
 import codes.recursive.barn.automation.model.BarnEvent
 import groovy.json.JsonSlurper
-import groovy.sql.GroovyRowResult
 import groovy.sql.Sql
-import groovy.util.logging.Slf4j
 import org.eclipse.microprofile.config.inject.ConfigProperty
 
 import javax.enterprise.context.ApplicationScoped
 import javax.inject.Inject
 import java.sql.SQLException
+import java.util.logging.Level
+import java.util.logging.Logger
 
 @ApplicationScoped
-@Slf4j
 class OracleDataService {
     String oracleUrl
     String oracleUser
@@ -29,6 +28,7 @@ class OracleDataService {
         this.oracleUser = user
         this.oraclePassword = password
         this.sql = getSql()
+        Logger.getLogger('groovy.sql').level = Level.FINE
     }
 
     Sql getSql() throws SQLException {
@@ -45,16 +45,17 @@ class OracleDataService {
     }
 
     int countEvents() {
-        return sql.firstRow("select count(1) as NUM from BARN_EVENT").NUM
+        return sql.firstRow("select count(1) as NUM from BARN_EVENT")?.NUM ?: 0
     }
 
     int countEventsByEventType(String type) {
-        return sql.firstRow("select count(1) as NUM from BARN_EVENT where TYPE = ?", [type]).NUM
+        return sql.firstRow("select count(1) as NUM from BARN_EVENT where TYPE = ?", [type])?.NUM ?: 0
     }
 
     List listEventsByEventType(String type, int offset=0, int max=50) {
         List events = []
-        sql.rows("select * from BARN_EVENT where TYPE = ?", [type], offset, max) {
+        JsonSlurper slurper = new JsonSlurper()
+        sql.eachRow("select * from BARN_EVENT where TYPE = ?", [type], offset, max) {
             events << [
                     id: it?.ID,
                     type: it?.TYPE,

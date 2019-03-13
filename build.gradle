@@ -2,6 +2,8 @@ apply plugin: 'java'
 apply plugin: 'maven'
 apply plugin: 'groovy'
 apply plugin: 'application'
+apply plugin: "com.palantir.docker"
+apply plugin: "com.palantir.docker-run"
 
 mainClassName = 'codes.recursive.barn.automation.Main'
 
@@ -20,8 +22,20 @@ tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
 
+buildscript {
+    repositories {
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath "gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.21.0"
+    }
+}
+
+
 ext {
-    helidonversion = '0.11.0'
+    helidonversion = '1.0.0'
 }
 
 repositories {
@@ -36,15 +50,13 @@ configurations {
 
 dependencies {
     localGroovyConf localGroovy()
+
     compile 'org.codehaus.groovy:groovy-all:3.0.0-alpha-3'
     compile "io.helidon:helidon-bom:${project.helidonversion}"
-    compile 'io.helidon.microprofile.bundles:helidon-microprofile-1.2'
+    compile group: 'io.helidon.microprofile.bundles', name: 'helidon-microprofile-1.2', version: '1.0.0'
     compile "io.helidon.webserver:helidon-webserver:${project.helidonversion}"
-    compile 'org.glassfish.jersey.media:jersey-media-json-binding:2.27'
     compile 'org.glassfish.jersey.media:jersey-media-sse:2.27'
-    compile group: 'org.apache.kafka', name: 'kafka_2.12', version: '1.1.1'
     compile group: 'com.101tec', name: 'zkclient', version: '0.8'
-    compile 'xyz.morphia.morphia:core:1.4.0'
 
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
@@ -68,7 +80,7 @@ task copyLocalLibs(type: Copy) {
 }
 
 task copyWallet(type: Copy) {
-  from '../../atp/wallet_BARNEVENTS/'
+  from '../../misc/atp/wallet_BARNEVENTS/'
   into 'build/wallet'
 }
 
@@ -99,6 +111,35 @@ task myRun(type: JavaExec){
     systemProperties = System.properties
 }
 
+docker {
+    files fileTree('build/')
+    name 'barn-automation/barn-pi-helidon-groovy-mp:latest'
+    dockerfile = new File('build/Dockerfile')
+    tag 'ocir', 'phx.ocir.io/toddrsharp/barn-automation/barn-pi-helidon-groovy-mp:latest'
+}
+
+task deploy() {
+    doFirst {
+        project.exec {
+            def cred = new File("${System.getProperty('java.io.tmpdir')}${UUID.randomUUID().toString()}.txt")
+            cred.write(dockerPassword)
+            it.commandLine 'bash', '-c', 'cat', cred.absolutePath, '|' ,'docker', 'login', '-u', dockerUsername, '--password-stdin'
+            cred.delete()
+            def podName = "kubectl get pods --selector=app=barn-automation-service-helidon-mp-groovy -o jsonpath='{.items[*].metadata.name}'".execute().in.text
+            def delPod = "kubectl delete pod ${podName.replaceAll("'", "")}".execute()
+            println delPod.in.text
+            println delPod.err.text
+        }
+    }
+    doLast {
+        println 'Build complete'
+    }
+}
+
+dockerPush.dependsOn docker
+deploy.dependsOn dockerTagsPush
+deploy.dependsOn assemble
+
 copyLibs.dependsOn jar
 copyLocalLibs.dependsOn jar
 copyWallet.dependsOn jar
@@ -124,3 +165,8 @@ jar {
     }
 }
 
+clean {
+    // don't delete .oci or wallet dirs
+    delete = [] //clear out existing files to delete
+    delete 'build/wallet', 'build/classes', 'build/distributions', 'build/libs', 'build/resources', 'build/scripts', 'build/tmp', 'build/app.yaml', 'build/Dockerfile', 'build/secret.yaml'
+}

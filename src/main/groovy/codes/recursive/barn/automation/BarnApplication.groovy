@@ -1,10 +1,9 @@
 package codes.recursive.barn.automation
 
 import codes.recursive.barn.automation.filter.CorsFilter
-import codes.recursive.barn.automation.service.data.DataService
 import codes.recursive.barn.automation.service.data.OracleDataService
-import codes.recursive.barn.automation.service.kafka.MessageConsumerService
-import codes.recursive.barn.automation.service.kafka.MessageProducerService
+import codes.recursive.barn.automation.service.streaming.MessageConsumerService
+import codes.recursive.barn.automation.service.streaming.MessageProducerService
 import groovy.util.logging.Slf4j
 import io.helidon.common.CollectionsHelper
 
@@ -21,7 +20,6 @@ class BarnApplication extends Application {
 
     @Inject private MessageConsumerService messageConsumerService
     @Inject private MessageProducerService messageProducerService
-    @Inject private DataService dataService
     @Inject private OracleDataService oracleDataService
 
     @PostConstruct

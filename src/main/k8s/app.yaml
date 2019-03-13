@@ -41,6 +41,8 @@ spec:
         - "-Djavax.net.ssl.trustStorePassword=$(TRUSTSTORE_PASSWORD)"
         - "-Djavax.net.ssl.keyStorePassword=$(KEYSTORE_PASSWORD)"
         - "-Dapp.oracle.password=$(ORACLE_PASSWORD)"
+        - "-DociConfigPath=/.oci/config"
+        - "-DstreamId=ocid1.stream.oc1.phx.aaaaaaaa43rirudiobxctznkkfds4jhhnejnqzhwq5754fejy6o4gc7tkcya"
         - "/app/${project.artifactId}.jar"
         env:
           - name: TRUSTSTORE_PASSWORD

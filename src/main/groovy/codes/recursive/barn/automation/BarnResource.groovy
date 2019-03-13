@@ -3,30 +3,22 @@ package codes.recursive.barn.automation
 import codes.recursive.barn.automation.event.EventEmitter
 import codes.recursive.barn.automation.service.TestService
 import codes.recursive.barn.automation.service.data.OracleDataService
-import codes.recursive.barn.automation.service.kafka.MessageConsumerService
-import codes.recursive.barn.automation.service.kafka.MessageProducerService
+import codes.recursive.barn.automation.service.streaming.MessageConsumerService
+import codes.recursive.barn.automation.service.streaming.MessageProducerService
 import groovy.json.JsonGenerator
-import org.bson.types.ObjectId
+import groovy.util.logging.Slf4j
 
 import javax.annotation.PostConstruct
 import javax.enterprise.context.RequestScoped
 import javax.inject.Inject
-import javax.ws.rs.Consumes
-import javax.ws.rs.GET
-import javax.ws.rs.POST
-import javax.ws.rs.Path
-import javax.ws.rs.PathParam
-import javax.ws.rs.Produces
+import javax.ws.rs.*
 import javax.ws.rs.core.Context
 import javax.ws.rs.core.MediaType
-import javax.ws.rs.core.Request
-import javax.ws.rs.core.Response
 import javax.ws.rs.sse.OutboundSseEvent
 import javax.ws.rs.sse.Sse
 import javax.ws.rs.sse.SseBroadcaster
 import javax.ws.rs.sse.SseEventSink
-import java.util.concurrent.CompletionStage
-import java.util.function.Consumer
+import java.util.logging.Logger
 
 @Path("/barn")
 @RequestScoped
@@ -57,7 +49,11 @@ class BarnResource {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     def getDefaultMessage() {
-        return new JsonGenerator.Options().build().toJson(testService.test())
+        return new JsonGenerator.Options().build().toJson([
+                health: 'OK',
+                streamSource: 'OCI',
+                at: new Date(),
+        ])
     }
 
     @Path("/events/type/{type}/{offset}/{max}")
@@ -139,14 +135,7 @@ class BarnResource {
         def streaming = true
         this.sseBroadcaster.register(sseEventSink)
         def generator = new JsonGenerator.Options()
-                .addConverter(ObjectId) { ObjectId objectId, String key ->
-            if (key == 'id') {
-                objectId.toString()
-            } else {
-                objectId
-            }
-        }
-        .build()
+                .build()
 
         // send an initial event so the stream can connect
         // even if the client is offline
