@@ -6,7 +6,6 @@ import codes.recursive.barn.automation.service.data.OracleDataService
 import codes.recursive.barn.automation.service.streaming.MessageConsumerService
 import codes.recursive.barn.automation.service.streaming.MessageProducerService
 import groovy.json.JsonGenerator
-import groovy.util.logging.Slf4j
 
 import javax.annotation.PostConstruct
 import javax.enterprise.context.RequestScoped
@@ -18,7 +17,6 @@ import javax.ws.rs.sse.OutboundSseEvent
 import javax.ws.rs.sse.Sse
 import javax.ws.rs.sse.SseBroadcaster
 import javax.ws.rs.sse.SseEventSink
-import java.util.logging.Logger
 
 @Path("/barn")
 @RequestScoped
