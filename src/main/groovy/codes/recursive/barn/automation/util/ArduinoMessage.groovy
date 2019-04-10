@@ -16,19 +16,19 @@ class ArduinoMessage {
     public static int ARDUINO_ON = 200
     public static int ARDUINO_OFF = 201
 
-    public static int MOTOR_O = 'MOTOR_O'
-    public static int MOTOR_1 = 'MOTOR_1'
-    public static int DOOR_0 = 'DOOR_0'
-    public static int DOOR_1 = 'DOOR_1'
-    public static int RELAY_0 = 'RELAY_0'
-    public static int WATER_0 = 'WATER_0'
-    public static int CAMERA_0 = 'CAMERA_0'
-    public static int DOOR_LED_0 = 'DOOR_LED_0'
-    public static int DOOR_LED_1 = 'DOOR_LED_1'
-    public static int OPEN = 'OPEN'
-    public static int CLOSE = 'CLOSE'
-    public static int ON = 'ON'
-    public static int OFF = 'OFF'
+    public static String MOTOR_O = 'MOTOR_O'
+    public static String MOTOR_1 = 'MOTOR_1'
+    public static String DOOR_0 = 'DOOR_0'
+    public static String DOOR_1 = 'DOOR_1'
+    public static String RELAY_0 = 'RELAY_0'
+    public static String WATER_0 = 'WATER_0'
+    public static String CAMERA_0 = 'CAMERA_0'
+    public static String DOOR_LED_0 = 'DOOR_LED_0'
+    public static String DOOR_LED_1 = 'DOOR_LED_1'
+    public static String OPEN = 'OPEN'
+    public static String CLOSE = 'CLOSE'
+    public static String ON = 'ON'
+    public static String OFF = 'OFF'
 
     int type
     String message

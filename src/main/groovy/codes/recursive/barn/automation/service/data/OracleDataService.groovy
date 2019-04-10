@@ -28,7 +28,7 @@ class OracleDataService {
         this.oracleUser = user
         this.oraclePassword = password
         this.sql = getSql()
-        Logger.getLogger('groovy.sql').level = Level.FINE
+        //Logger.getLogger('groovy.sql').level = Level.FINE
     }
 
     Sql getSql() throws SQLException {

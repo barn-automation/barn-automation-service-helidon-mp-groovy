@@ -6,14 +6,15 @@ import codes.recursive.barn.automation.service.data.OracleDataService
 import codes.recursive.barn.automation.util.ArduinoMessage
 import com.oracle.bmc.auth.ConfigFileAuthenticationDetailsProvider
 import com.oracle.bmc.streaming.StreamClient
+import com.oracle.bmc.streaming.model.CreateCursorDetails
 import com.oracle.bmc.streaming.model.CreateGroupCursorDetails
 import com.oracle.bmc.streaming.model.Message
+import com.oracle.bmc.streaming.requests.CreateCursorRequest
 import com.oracle.bmc.streaming.requests.CreateGroupCursorRequest
 import com.oracle.bmc.streaming.requests.GetMessagesRequest
 import groovy.json.JsonException
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
-import groovy.util.logging.Slf4j
 
 import javax.enterprise.context.ApplicationScoped
 import javax.inject.Inject
@@ -21,20 +22,18 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.logging.Logger
 
 @ApplicationScoped
-class MessageConsumerService {
-    private static final Logger log = Logger.getLogger(MessageConsumerService.class.name)
+class CameraConsumerService {
+    private static final Logger log = Logger.getLogger(CameraConsumerService.class.name)
 
     String configFilePath
     String streamId
-    String groupName = 'group-0'
     StreamClient client
     private final AtomicBoolean closed = new AtomicBoolean(false)
 
     @Inject private EventEmitter eventEmitter
     @Inject private OracleDataService oracleDataService
 
-
-    MessageConsumerService(configFilePath=System.getProperty("ociConfigPath", "/.oci/config"), streamId=System.getProperty("outgoingStreamId")) {
+    CameraConsumerService(configFilePath=System.getProperty("ociConfigPath", "/.oci/config"), streamId=System.getProperty("cameraStreamId")) {
         this.configFilePath = configFilePath
         this.streamId = streamId
         def provider =  new ConfigFileAuthenticationDetailsProvider(this.configFilePath, 'DEFAULT')
@@ -43,21 +42,19 @@ class MessageConsumerService {
         this.client = client
     }
 
-
     void start() {
-        log.info("Creating cursor...")
+        log.info("Creating camera cursor...")
 
-        def cursorDetails = CreateGroupCursorDetails.builder()
-                .type(CreateGroupCursorDetails.Type.TrimHorizon)
-                .commitOnGet(true)
-                .groupName(this.groupName)
+        def cursorDetails = CreateCursorDetails.builder()
+                .type(CreateCursorDetails.Type.Latest)
+                .partition("0")
                 .build()
-        def groupCursorRequest = CreateGroupCursorRequest.builder()
+        def cursorRequest = CreateCursorRequest.builder()
                 .streamId(streamId)
-                .createGroupCursorDetails(cursorDetails)
+                .createCursorDetails(cursorDetails)
                 .build()
 
-        def cursorResponse = this.client.createGroupCursor(groupCursorRequest)
+        def cursorResponse = this.client.createCursor(cursorRequest)
 
         log.info("Cursor created...")
 
@@ -75,10 +72,7 @@ class MessageConsumerService {
                     msg = slurper.parseText( new String(record.value, "UTF-8") )
                     log.info "Received: ${JsonOutput.toJson(msg)}"
                     BarnEvent evt = new BarnEvent( msg?.type, JsonOutput.toJson(msg?.data), record.timestamp )
-                    if( evt.type != ArduinoMessage.CAMERA_0 ) {
-                        eventEmitter.emit('incomingMessage', [message: [type: evt.type, capturedAt: evt.capturedAt, data: slurper.parseText(evt.data)], timestamp: record.timestamp])
-                    }
-                    oracleDataService.save(evt)
+                    eventEmitter.emit('cameraMessage', [message: [type: evt.type, capturedAt: evt.capturedAt, data: slurper.parseText(evt.data)], timestamp: record.timestamp])
                 }
                 catch (JsonException e) {
                     log.warning("Error parsing JSON from ${record.value}")
@@ -96,7 +90,7 @@ class MessageConsumerService {
     }
 
     def close() {
-        log.info("Closing consumer...")
+        log.info("Closing camera consumer...")
         closed.set(true)
     }
 }

@@ -35,7 +35,7 @@ buildscript {
 
 
 ext {
-    helidonversion = '1.0.0'
+    helidonversion = '1.0.1'
 }
 
 repositories {
@@ -53,9 +53,9 @@ dependencies {
 
     compile 'org.codehaus.groovy:groovy-all:3.0.0-alpha-3'
     compile "io.helidon:helidon-bom:${project.helidonversion}"
-    compile group: 'io.helidon.microprofile.bundles', name: 'helidon-microprofile-1.2', version: '1.0.0'
+    compile group: 'io.helidon.microprofile.bundles', name: 'helidon-microprofile-1.2', version: '1.0.1'
     compile "io.helidon.webserver:helidon-webserver:${project.helidonversion}"
-    compile 'org.glassfish.jersey.media:jersey-media-sse:2.27'
+    compile 'org.glassfish.jersey.media:jersey-media-sse:2.28'
     compile group: 'com.101tec', name: 'zkclient', version: '0.8'
 
     implementation fileTree(dir: 'libs', include: ['*.jar'])
